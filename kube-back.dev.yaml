@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trades-back-dev
+  labels:
+    app: trades-back-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project: trades
+  template:
+    metadata:
+      labels:
+        project: trades
+    spec:
+      containers:
+        - name: rust-server
+          image: trades-back:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
