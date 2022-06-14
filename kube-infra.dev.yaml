@@ -12,18 +12,18 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dev-trades
+  name: trades-pg-dev
   labels:
-    app: dev-trades
+    app: trades-pg-dev
 spec:
   replicas: 1
   selector:
     matchLabels:
-      project: trades
+      project: trades-pg-dev
   template:
     metadata:
       labels:
-        project: trades
+        project: trades-pg-dev
     spec:
       containers:
         - name: postgres
@@ -38,22 +38,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: dev-trades
+  name: trades-pg-dev
   labels:
     env: prod
     owner: me
 spec:
   selector:
-    project: trades
+    project: trades-pg-dev
   ports:
-    - name: rust-server
-      protocol: TCP
-      port: 8080 # port on load balancer
-      targetPort: 8080 # port on pod
-    - name: angular-server
-      protocol: TCP
-      port: 4200 # port on load balancer
-      targetPort: 4200 # port on pod
     - name: pg
       protocol: TCP
       port: 5432  # port on load balancer

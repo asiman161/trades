@@ -8,11 +8,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      project: trades
+      project: trades-back-dev
   template:
     metadata:
       labels:
-        project: trades
+        project: trades-back-dev
     spec:
       containers:
         - name: rust-server
@@ -22,4 +22,21 @@ spec:
             - containerPort: 8080
           env:
             - name: DATABASE_URL
-              value: postgres://postgresadmin:admin123@dev-trades.default:5432/postgresdb
+              value: postgres://postgresadmin:admin123@trades-pg-dev.default:5432/postgresdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trades-back-dev
+  labels:
+    env: prod
+    owner: me
+spec:
+  selector:
+    project: trades-back-dev
+  ports:
+    - name: rust-server
+      protocol: TCP
+      port: 8080 # port on load balancer
+      targetPort: 8080 # port on pod
+  type: LoadBalancer
