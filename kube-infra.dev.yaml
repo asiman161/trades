@@ -34,11 +34,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: postgres-config
-        - name: angular-server
-          image: trades-front-dev:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 4200
 ---
 apiVersion: v1
 kind: Service

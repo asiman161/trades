@@ -16,7 +16,10 @@ spec:
     spec:
       containers:
         - name: rust-server
-          image: trades-back:latest
+          image: trades-back-dev:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              value: postgres://postgresadmin:admin123@dev-trades.default:5432/postgresdb
