@@ -6,9 +6,8 @@ use binance::api::Binance;
 use binance::market::Market;
 use binance::model::KlineSummaries::*;
 use binance::model::KlineSummary;
-use chrono::{Utc};
+use chrono::Utc;
 
-// #[derive(Debug)]
 pub struct Downloader {
     bin_market_client: Market,
 }
@@ -28,12 +27,32 @@ pub enum Interval {
     OneDay,
 }
 
-impl Downloader {
-    pub fn new(api_key: &str, secret_key: &str) -> Self {
-        let v: Market = Binance::new(Some(String::from(api_key)), Some(String::from(secret_key)));
-        Downloader { bin_market_client: v }
+impl Interval {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Interval::OneMinute => ONE_MINUTE,
+            Interval::ThreeMinutes => THREE_MINUTES,
+            Interval::FiveMinutes => FIVE_MINUTES,
+            Interval::FifteenMinutes => FIFTEEN_MINUTES,
+            Interval::ThirtyMinutes => THIRTY_MINUTES,
+            Interval::OneHour => ONE_HOUR,
+            Interval::TwoHours => TWO_HOURS,
+            Interval::FourHours => FOUR_HOURS,
+            Interval::SixHours => SIX_HOURS,
+            Interval::EightHours => EIGHT_HOURS,
+            Interval::TwelveHours => TWELVE_HOURS,
+            Interval::OneDay => ONE_DAY,
+        }
     }
+}
 
+
+pub fn new(api_key: &str, secret_key: &str) -> Downloader {
+    let v: Market = Binance::new(Some(String::from(api_key)), Some(String::from(secret_key)));
+    Downloader { bin_market_client: v }
+}
+
+impl Downloader {
     pub async fn get_klines(self, symbol: &String, interval: &Interval, samples: u64) -> Result<Vec<KlineSummary>, String> {
         let max_limit = 1000;
         let time_interval = interval_from_seconds(interval) * max_limit;
@@ -55,7 +74,7 @@ impl Downloader {
         while left > 0 {
             let from = SystemTime::now().sub(Duration::from_secs(left as u64));
             let from2 = chrono::DateTime::<Utc>::from(from);
-            let result = self.bin_market_client.get_klines(symbol.clone(), get_interval_name(&interval), max_limit as u16, from2.timestamp_millis() as u64, None);
+            let result = self.bin_market_client.get_klines(symbol.clone(), interval.as_str(), max_limit as u16, from2.timestamp_millis() as u64, None);
             match result.await {
                 Ok(AllKlineSummaries(klines)) => {
                     for v in klines.into_iter() {
@@ -126,23 +145,6 @@ fn interval_from_seconds(v: &Interval) -> u64 {
         Interval::EightHours => HOUR * 8,
         Interval::TwelveHours => HOUR * 12,
         Interval::OneDay => DAY,
-    }
-}
-
-fn get_interval_name(v: &Interval) -> &str {
-    match v {
-        Interval::OneMinute => ONE_MINUTE,
-        Interval::ThreeMinutes => THREE_MINUTES,
-        Interval::FiveMinutes => FIVE_MINUTES,
-        Interval::FifteenMinutes => FIFTEEN_MINUTES,
-        Interval::ThirtyMinutes => THIRTY_MINUTES,
-        Interval::OneHour => ONE_HOUR,
-        Interval::TwoHours => TWO_HOURS,
-        Interval::FourHours => FOUR_HOURS,
-        Interval::SixHours => SIX_HOURS,
-        Interval::EightHours => EIGHT_HOURS,
-        Interval::TwelveHours => TWELVE_HOURS,
-        Interval::OneDay => ONE_DAY,
     }
 }
 

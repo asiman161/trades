@@ -1,42 +1,58 @@
-use std::time::{SystemTime};
+use std::time::SystemTime;
 
-use actix_web::{get, HttpResponse, http::header::ContentType, Responder, web};
-use binance::api::Binance;
-use binance::market::Market;
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use actix_web::{get, http::header::ContentType, HttpResponse, post, Responder, web};
+use bigdecimal::BigDecimal;
+use chrono::NaiveDateTime;
+use diesel::QueryResult;
 
 use crate::bns::downloader;
-use crate::bns::downloader::{Downloader};
-use crate::core::models::KlinesRequest;
-use crate::models::Post;
-use crate::schema::posts::dsl::posts;
-use crate::schema::posts::published;
+use crate::core::models::{BnsKline, BnsKlinesRequest, BnsPairRequest, NewBnsPair};
+use crate::core::storage;
 
-#[get("/hello/{name}")]
-pub async fn greet(name: web::Path<String>) -> impl Responder {
-    let connection = crate::establish_connection();
-    let results = posts.filter(published.eq(true))
-        .limit(5)
-        .load::<Post>(&connection)
-        .expect("Error loading posts");
+#[post("/api/bns_pair")]
+pub async fn create_bns_pair(req: web::Json<BnsPairRequest>) -> impl Responder {
+    let s = storage::new();
+    let new_pair = s.create_bns_pair(NewBnsPair {
+        ticker: req.ticker.to_string(),
+        interval: req.interval.to_string(),
+    });
 
-    println!("Displaying {} posts", results.len());
-    let path_param = name.as_str();
-    for post in results {
-        println!("{}. path param name: {}", post.title, path_param);
-        println!("----------\n");
-        println!("{}", post.body);
-    }
-    format!("Hello world!")
+    let body = serde_json::to_string(&new_pair).unwrap();
+
+    HttpResponse::Ok()
+        .content_type(ContentType::json())
+        .body(body)
 }
 
-#[get("/klines")]
-pub async fn get_klines(req: web::Query<KlinesRequest>) -> impl Responder {
-    let d = Downloader::new("", "");
+#[get("/api/bns_pair")]
+pub async fn get_bns_pair(req: web::Query<BnsPairRequest>) -> impl Responder {
+    let s = storage::new();
+    let bns_pair = s.get_bns_pair(req.ticker.to_string(), req.interval.to_string());
+
+    match bns_pair {
+        Ok(v) => {
+            let body = serde_json::to_string(&v).unwrap();
+
+            HttpResponse::Ok()
+                .content_type(ContentType::json())
+                .body(body)
+        }
+        Err(v) => {
+            HttpResponse::InternalServerError()
+                .body(v.to_string())
+        }
+    }
+
+
+}
+
+#[post("api/klines")]
+pub async fn get_klines(req: web::Json<BnsKlinesRequest>) -> impl Responder {
+    let d = downloader::new("", "");
     let interval = downloader::interval_from_name(req.interval.as_str());
-    let now2 = SystemTime::now();
+    let now = SystemTime::now();
     let result = d.get_klines(&req.ticker, &interval, req.samples).await;
-    println!("spent time: {:?}", now2.elapsed());
+    println!("spent time: {:?}", now.elapsed());
 
     // match &result {
     //     Ok(klines) => {
@@ -49,35 +65,44 @@ pub async fn get_klines(req: web::Query<KlinesRequest>) -> impl Responder {
     //     Err(e) => {}
     // }
 
-    let body = serde_json::to_string(&result).unwrap();
+    use bigdecimal::Num;
+    return match &result {
+        Ok(klines) => {
+            let store = storage::new();
+            let mut db_klines: Vec<BnsKline> = Vec::new();
+            for v in klines.iter() {
+                let kline = BnsKline {
+                    pair: 1,
+                    open_time: NaiveDateTime::from_timestamp(v.open_time / 1000, (v.open_time % 1000) as u32),
+                    open: BigDecimal::from_str_radix(v.open.as_str(), 10).unwrap(),
+                    high: BigDecimal::from_str_radix(v.high.as_str(), 10).unwrap(),
+                    low: BigDecimal::from_str_radix(v.low.as_str(), 10).unwrap(),
+                    close: BigDecimal::from_str_radix(v.close.as_str(), 10).unwrap(),
+                    volume: v.volume.parse().unwrap(),
+                    close_time: NaiveDateTime::from_timestamp(v.close_time / 1000, (v.close_time % 1000) as u32),
+                    quote_asset_volume: v.quote_asset_volume.parse().unwrap(),
+                    number_of_trades: v.number_of_trades as i32,
+                    taker_buy_base_asset_volume: v.taker_buy_base_asset_volume.parse().unwrap(),
+                    taker_buy_quote_asset_volume: v.taker_buy_quote_asset_volume.parse().unwrap(),
+                };
+                db_klines.push(kline)
+            }
 
+            match store.create_bns_klines(db_klines) {
+                Ok(_) => {
+                    let body = serde_json::to_string(&result).unwrap();
 
-    HttpResponse::Ok()
-        .content_type(ContentType::json())
-        .body(body)
-}
-
-#[get("/")]
-pub async fn hello() -> impl Responder {
-    let m: Market = Binance::new(None, None);
-    match m.get_depth("BNBETH").await {
-        Ok(answer) => println!("{:?}", answer),
-        Err(e) => println!("Error: {}", e),
+                    HttpResponse::Ok()
+                        .content_type(ContentType::json())
+                        .body(body)
+                }
+                Err(v) => {
+                    HttpResponse::InternalServerError().body(v.to_string())
+                }
+            }
+        }
+        Err(v) => {
+            HttpResponse::InternalServerError().body(v.to_string())
+        }
     }
-    format!("Hello world!")
-}
-
-#[get("/post")]
-pub async fn create_const_post() -> impl Responder {
-    let connection = crate::establish_connection();
-
-    println!("What would you like your title to be?");
-    let title = String::from("post title");
-
-    let title = &title[..(title.len() - 1)]; // Drop the newline character
-
-    let body = String::from("post title");
-
-    let post = crate::create_post(&connection, title, &body);
-    format!("\nSaved draft {} with id {}", title, post.id)
 }
