@@ -1,5 +1,5 @@
 [package]
-name = "back"
+name = "robot"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,8 +9,8 @@ edition = "2021"
 actix-web = "4"
 diesel = { version = "1.4.4", features = ["postgres", "chrono", "numeric"] }
 dotenv = "0.15.0"
-serde = "1.0.139"
-serde_json = "1.0.82"
+serde = { version = "1.0.139" , features = ["derive"]}
+serde_json = { version = "1.0.82" }
 binance = { git = "https://github.com/asiman161/binance-rs.git" }
 chrono = { version = "0.4", features = ["serde"] }
 tokio = { version = "1.19.2", features = ["full"] }

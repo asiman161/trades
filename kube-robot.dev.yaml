@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: trades-back-dev
+  name: trades-robot-dev
   labels:
-    app: trades-back-dev
+    app: trades-robot-dev
 spec:
   replicas: 1
   selector:
     matchLabels:
-      project: trades-back-dev
+      project: trades-robot-dev
   template:
     metadata:
       labels:
-        project: trades-back-dev
+        project: trades-robot-dev
     spec:
       containers:
-        - name: rust-server
-          image: trades-test:latest
+        - name: rust-robot
+          image: robot:latest
           imagePullPolicy: Never
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           env:
             - name: DATABASE_URL
               value: postgres://postgresadmin:admin123@trades-pg-dev.default:5432/postgresdb
@@ -27,16 +27,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: trades-back-dev
+  name: trades-robot-dev
   labels:
     env: prod
     owner: me
 spec:
   selector:
-    project: trades-back-dev
+    project: trades-robot-dev
   ports:
-    - name: rust-server
+    - name: rust-robot
       protocol: TCP
-      port: 8080 # port on load balancer
-      targetPort: 8080 # port on pod
+      port: 8000 # port on load balancer
+      targetPort: 8000 # port on pod
   type: LoadBalancer

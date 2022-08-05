@@ -24,7 +24,17 @@ table! {
     }
 }
 
+table! {
+    indicators_data (ticker, interval, close_time) {
+        ticker -> Text,
+        interval -> Text,
+        data -> Jsonb,
+        close_time -> Timestamp,
+    }
+}
+
 allow_tables_to_appear_in_same_query!(
     bns_klines,
     bns_pairs,
+    indicators_data,
 );

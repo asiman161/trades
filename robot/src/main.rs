@@ -6,9 +6,10 @@ async fn main() -> std::io::Result<()> {
     println!("server started on internal port: {port}");
     HttpServer::new(|| {
         App::new()
-            .service(back::core::handlers::get_klines)
-            .service(back::core::handlers::get_bns_pair)
-            .service(back::core::handlers::create_bns_pair)
+            .service(robot::core::handlers::ping)
+            .service(robot::core::handlers::get_klines)
+            .service(robot::core::handlers::get_bns_pair)
+            .service(robot::core::handlers::create_bns_pair)
     })
         .bind(("0.0.0.0", port))?
         .run()

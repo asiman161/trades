@@ -13,7 +13,7 @@ pub struct BnsKlinesRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BnsPairRequest {
-    pub ticker: String,
+    pub ticker: Option<String>,
     pub interval: String,
 }
 

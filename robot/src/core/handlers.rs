@@ -3,17 +3,21 @@ use std::time::SystemTime;
 use actix_web::{get, http::header::ContentType, HttpResponse, post, Responder, web};
 use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
-use diesel::QueryResult;
 
 use crate::bns::downloader;
 use crate::core::models::{BnsKline, BnsKlinesRequest, BnsPairRequest, NewBnsPair};
 use crate::core::storage;
 
+#[get("/api/ping")]
+pub async fn ping() -> impl Responder {
+    format!("pong")
+}
+
 #[post("/api/bns_pair")]
 pub async fn create_bns_pair(req: web::Json<BnsPairRequest>) -> impl Responder {
     let s = storage::new();
     let new_pair = s.create_bns_pair(NewBnsPair {
-        ticker: req.ticker.to_string(),
+        ticker: if let Some(v) = &req.ticker {v.to_string()} else {String::from("")},
         interval: req.interval.to_string(),
     });
 
@@ -27,7 +31,7 @@ pub async fn create_bns_pair(req: web::Json<BnsPairRequest>) -> impl Responder {
 #[get("/api/bns_pair")]
 pub async fn get_bns_pair(req: web::Query<BnsPairRequest>) -> impl Responder {
     let s = storage::new();
-    let bns_pair = s.get_bns_pair(req.ticker.to_string(), req.interval.to_string());
+    let bns_pair = s.get_bns_pair(if let Some(v) = &req.ticker {v.to_string()} else {String::from("BTCUSDT")}, req.interval.to_string());
 
     match bns_pair {
         Ok(v) => {
@@ -42,8 +46,6 @@ pub async fn get_bns_pair(req: web::Query<BnsPairRequest>) -> impl Responder {
                 .body(v.to_string())
         }
     }
-
-
 }
 
 #[post("api/klines")]
