@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/adshao/go-binance/v2"
 	"github.com/asiman161/trades/internal/app/trades"
 	"github.com/asiman161/trades/internal/bootstrap"
 	"github.com/asiman161/trades/internal/storage"
@@ -28,6 +29,8 @@ func initApp(cfg bootstrap.AppConfig) *trades.Implementation {
 		log.Fatal(err)
 	}
 
+	bnsClient := binance.NewClient("apiKey", "secretKey")
+
 	store := storage.New(db)
-	return trades.New(store)
+	return trades.New(store, bnsClient)
 }

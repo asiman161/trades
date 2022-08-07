@@ -70,5 +70,7 @@ func registerMiddlewares(r *chi.Mux) {
 }
 
 func registerHandlers(r *chi.Mux, i *trades.Implementation) {
-	r.Get("/", i.Hello)
+	r.Get("/ping", i.Ping)
+	r.Get("/api/bns/bns_pair", i.GetBnsPair)
+	r.Get("/api/bns/klines", i.GetBnsKlines)
 }
