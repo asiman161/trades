@@ -1,22 +1,33 @@
 package main
 
 import (
-	"net/http"
+	"log"
 
 	"github.com/asiman161/trades/internal/app/trades"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/asiman161/trades/internal/bootstrap"
+	"github.com/asiman161/trades/internal/storage"
+	"github.com/caarlos0/env/v6"
 )
 
 func main() {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	cfg := bootstrap.AppConfig{}
 
-	registerHandlers(r)
-	http.ListenAndServe(":8080", r)
+	if err := env.Parse(&cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	app := initApp(cfg)
+
+	server := bootstrap.SetupServer(app, cfg)
+	bootstrap.StartServer(server)
 }
 
-func registerHandlers(r *chi.Mux) {
-	i := trades.New()
-	r.Get("/", i.Hello)
+func initApp(cfg bootstrap.AppConfig) *trades.Implementation {
+	db, err := bootstrap.InitStorage(cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	store := storage.New(db)
+	return trades.New(store)
 }
